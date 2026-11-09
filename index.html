@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>服飾資料庫 | 商品查詢</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F4F5F9; --surface:#FFFFFF; --ink:#1B1E2B; --muted:#5E6376; --line:#DCDFEA;
+  --accent:#3B4CCA; --accent-ink:#FFFFFF; --out:#B42318; --low:#9A5B00;
+  --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --serif:"Noto Serif TC","Songti TC","PMingLiU",serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+header{background:var(--ink);color:#fff;padding:28px 0 24px}
+header h1{font-family:var(--serif);font-size:clamp(26px,4vw,38px);margin:0 0 4px;letter-spacing:.04em}
+header p{margin:0;color:#C5C9DA;font-size:15px}
+.layout{display:grid;grid-template-columns:260px 1fr;gap:28px;padding:28px 20px 56px;align-items:start}
+.filters{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;position:sticky;top:16px}
+.filters h2{font-size:15px;margin:0 0 12px}
+.field{margin-bottom:18px}
+.field>label,.field>.lbl{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+.search,.sel{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:#fff;min-height:42px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 13px;cursor:pointer;min-height:36px}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.check{display:flex;gap:8px;align-items:center;min-height:36px;cursor:pointer}
+.check input{width:18px;height:18px;accent-color:var(--accent)}
+.reset{width:100%;border:1px solid var(--line);background:#fff;border-radius:8px;padding:9px;cursor:pointer;min-height:42px}
+.reset:hover{border-color:var(--accent);color:var(--accent)}
+.bar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.count{font-size:15px;margin:0}
+.count b{font-size:20px}
+.sortbox{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)}
+.sortbox .sel{width:auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;list-style:none;margin:0;padding:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
+/* 原始照片底部印有檔名文字且左側有白邊,這裡只顯示照片本體(約 137x108 像素) */
+.photo{position:relative;aspect-ratio:137/108;background:#E9EAF0;overflow:hidden}
+.photo img{position:absolute;top:0;left:-5.11%;width:105.11%;height:auto;max-width:none;display:block}
+.photo.empty::after{content:"無圖片";position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:14px}
+.card.sold .photo img{filter:grayscale(.85);opacity:.55}
+.badge{position:absolute;left:8px;top:8px;background:var(--out);color:#fff;font-size:13px;font-weight:700;padding:2px 9px;border-radius:6px}
+.badge.low{background:var(--low)}
+.info{padding:11px 12px 13px;display:flex;flex-direction:column;gap:3px;flex:1}
+.meta{font-size:12.5px;color:var(--muted)}
+.name{font-family:var(--serif);font-weight:600;font-size:16px;line-height:1.35;margin:0}
+.spec{font-size:13px;color:var(--muted)}
+.price{margin-top:auto;padding-top:8px;font-weight:700;font-size:18px}
+.empty-state{background:var(--surface);border:1px dashed var(--line);border-radius:10px;padding:40px 20px;text-align:center}
+.empty-state p{margin:0 0 14px}
+.empty-state button{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:10px 18px;cursor:pointer;min-height:42px}
+footer{color:var(--muted);font-size:13px;padding:0 0 36px}
+@media (max-width:860px){
+  .layout{grid-template-columns:1fr;gap:18px}
+  .filters{position:static}
+}
+@media (max-width:420px){.grid{grid-template-columns:repeat(2,1fr);gap:12px}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>服飾資料庫</h1>
+  <p>60 件商品,可依類別、品牌、顏色、尺寸篩選,也能搜尋名稱。</p>
+</div></header>
+
+<main class="wrap layout">
+  <aside class="filters" aria-label="篩選條件">
+    <h2>篩選商品</h2>
+    <div class="field"><label for="q">搜尋</label>
+      <input id="q" class="search" type="search" placeholder="例如:洋裝、白色、Urban Leaf" autocomplete="off"></div>
+    <div class="field"><span class="lbl" id="catlbl">類別</span>
+      <div class="chips" id="cats" role="group" aria-labelledby="catlbl"></div></div>
+    <div class="field"><label for="brand">品牌</label><select id="brand" class="sel"></select></div>
+    <div class="field"><label for="color">顏色</label><select id="color" class="sel"></select></div>
+    <div class="field"><label for="size">尺寸</label><select id="size" class="sel"></select></div>
+    <div class="field"><label class="check"><input type="checkbox" id="instock"> 只看有庫存</label></div>
+    <button class="reset" id="reset" type="button">清除全部篩選</button>
+  </aside>
+
+  <section aria-label="商品列表">
+    <div class="bar">
+      <p class="count" aria-live="polite" id="count"></p>
+      <label class="sortbox">排序
+        <select id="sort" class="sel">
+          <option value="id">商品編號</option>
+          <option value="asc">價格:低到高</option>
+          <option value="desc">價格:高到低</option>
+          <option value="new">上架日期:新到舊</option>
+        </select>
+      </label>
+    </div>
+    <ul class="grid" id="grid"></ul>
+  </section>
+</main>
+<div class="wrap"><footer>資料來自 clothing_store 資料庫(匯出成靜態資料);價格單位為新台幣。</footer></div>
+
+<script>
+const PRODUCTS = [{"id": "P0001", "name": "純棉T恤 01款", "cat": "上衣", "brand": "Urban Leaf", "country": "台灣", "color": "白色", "size": "M", "price": 610, "stock": 7, "date": "2026-01-01", "img": "images/products/product-011.jpg", "q": "approx"}, {"id": "P0002", "name": "直筒牛仔褲 02款", "cat": "褲子", "brand": "North Thread", "country": "日本", "color": "米色", "size": "L", "price": 830, "stock": 14, "date": "2026-01-01", "img": "images/products/product-041.jpg", "q": "ok"}, {"id": "P0003", "name": "百褶裙 03款", "cat": "裙子", "brand": "Mode Studio", "country": "韓國", "color": "藍色", "size": "XL", "price": 1050, "stock": 21, "date": "2025-06-15", "img": "images/products/product-035.jpg", "q": "ok"}, {"id": "P0004", "name": "防風外套 04款", "cat": "外套", "brand": "Daily Wear", "country": "台灣", "color": "灰色", "size": "S", "price": 1270, "stock": 28, "date": "2026-01-01", "img": "images/products/product-052.jpg", "q": "approx"}, {"id": "P0005", "name": "碎花洋裝 05款", "cat": "洋裝", "brand": "Peak Active", "country": "美國", "color": "綠色", "size": "M", "price": 1490, "stock": 35, "date": "2026-01-01", "img": "images/products/product-001.jpg", "q": "ok"}, {"id": "P0006", "name": "運動上衣 06款", "cat": "運動服", "brand": "Urban Leaf", "country": "台灣", "color": "黑色", "size": "L", "price": 1710, "stock": 4, "date": "2025-06-15", "img": "images/products/product-021.jpg", "q": "borrowed"}, {"id": "P0007", "name": "襯衫 07款", "cat": "上衣", "brand": "North Thread", "country": "日本", "color": "白色", "size": "XL", "price": 1930, "stock": 11, "date": "2026-01-01", "img": "images/products/product-016.jpg", "q": "ok"}, {"id": "P0008", "name": "休閒長褲 08款", "cat": "褲子", "brand": "Mode Studio", "country": "韓國", "color": "米色", "size": "S", "price": 2150, "stock": 18, "date": "2026-01-01", "img": "images/products/product-045.jpg", "q": "ok"}, {"id": "P0009", "name": "牛仔短裙 09款", "cat": "裙子", "brand": "Daily Wear", "country": "台灣", "color": "藍色", "size": "M", "price": 2370, "stock": 25, "date": "2025-06-15", "img": "images/products/product-034.jpg", "q": "ok"}, {"id": "P0010", "name": "丹寧外套 10款", "cat": "外套", "brand": "Peak Active", "country": "美國", "color": "灰色", "size": "L", "price": 500, "stock": 32, "date": "2026-01-01", "img": "images/products/product-051.jpg", "q": "ok"}, {"id": "P0011", "name": "無袖洋裝 11款", "cat": "洋裝", "brand": "Urban Leaf", "country": "台灣", "color": "綠色", "size": "XL", "price": 720, "stock": 1, "date": "2026-01-01", "img": "images/products/product-007.jpg", "q": "ok"}, {"id": "P0012", "name": "瑜伽褲 12款", "cat": "運動服", "brand": "North Thread", "country": "日本", "color": "黑色", "size": "S", "price": 940, "stock": 8, "date": "2025-06-15", "img": "images/products/product-048.jpg", "q": "borrowed"}, {"id": "P0013", "name": "針織上衣 13款", "cat": "上衣", "brand": "Mode Studio", "country": "韓國", "color": "白色", "size": "M", "price": 1160, "stock": 15, "date": "2026-01-01", "img": "images/products/product-029.jpg", "q": "ok"}, {"id": "P0014", "name": "西裝褲 14款", "cat": "褲子", "brand": "Daily Wear", "country": "台灣", "color": "米色", "size": "L", "price": 1380, "stock": 22, "date": "2026-01-01", "img": "images/products/product-046.jpg", "q": "approx"}, {"id": "P0015", "name": "長裙 15款", "cat": "裙子", "brand": "Peak Active", "country": "美國", "color": "藍色", "size": "XL", "price": 1600, "stock": 29, "date": "2025-06-15", "img": "images/products/product-039.jpg", "q": "ok"}, {"id": "P0016", "name": "連帽外套 16款", "cat": "外套", "brand": "Urban Leaf", "country": "台灣", "color": "灰色", "size": "S", "price": 1820, "stock": 36, "date": "2026-01-01", "img": "images/products/product-054.jpg", "q": "ok"}, {"id": "P0017", "name": "長袖洋裝 17款", "cat": "洋裝", "brand": "North Thread", "country": "日本", "color": "綠色", "size": "M", "price": 2040, "stock": 5, "date": "2026-01-01", "img": "images/products/product-003.jpg", "q": "approx"}, {"id": "P0018", "name": "訓練短褲 18款", "cat": "運動服", "brand": "Mode Studio", "country": "韓國", "color": "黑色", "size": "L", "price": 2260, "stock": 12, "date": "2025-06-15", "img": "images/products/product-031.jpg", "q": "borrowed"}, {"id": "P0019", "name": "短袖上衣 19款", "cat": "上衣", "brand": "Daily Wear", "country": "台灣", "color": "白色", "size": "XL", "price": 390, "stock": 19, "date": "2026-01-01", "img": "images/products/product-013.jpg", "q": "ok"}, {"id": "P0020", "name": "寬褲 20款", "cat": "褲子", "brand": "Peak Active", "country": "美國", "color": "米色", "size": "S", "price": 610, "stock": 26, "date": "2026-01-01", "img": "images/products/product-042.jpg", "q": "ok"}, {"id": "P0021", "name": "A字裙 21款", "cat": "裙子", "brand": "Urban Leaf", "country": "台灣", "color": "藍色", "size": "M", "price": 830, "stock": 33, "date": "2025-06-15", "img": "images/products/product-037.jpg", "q": "ok"}, {"id": "P0022", "name": "西裝外套 22款", "cat": "外套", "brand": "North Thread", "country": "日本", "color": "灰色", "size": "L", "price": 1050, "stock": 2, "date": "2026-01-01", "img": "images/products/product-057.jpg", "q": "ok"}, {"id": "P0023", "name": "襯衫洋裝 23款", "cat": "洋裝", "brand": "Mode Studio", "country": "韓國", "color": "綠色", "size": "XL", "price": 1270, "stock": 9, "date": "2026-01-01", "img": "images/products/product-005.jpg", "q": "approx"}, {"id": "P0024", "name": "運動外套 24款", "cat": "運動服", "brand": "Daily Wear", "country": "台灣", "color": "黑色", "size": "S", "price": 1490, "stock": 16, "date": "2025-06-15", "img": "images/products/product-054.jpg", "q": "borrowed"}, {"id": "P0025", "name": "條紋上衣 25款", "cat": "上衣", "brand": "Peak Active", "country": "美國", "color": "白色", "size": "M", "price": 1710, "stock": 23, "date": "2026-01-01", "img": "images/products/product-018.jpg", "q": "ok"}, {"id": "P0026", "name": "棉質短褲 26款", "cat": "褲子", "brand": "Urban Leaf", "country": "台灣", "color": "米色", "size": "L", "price": 1930, "stock": 30, "date": "2026-01-01", "img": "images/products/product-032.jpg", "q": "ok"}, {"id": "P0027", "name": "針織裙 27款", "cat": "裙子", "brand": "North Thread", "country": "日本", "color": "藍色", "size": "XL", "price": 2150, "stock": 37, "date": "2025-06-15", "img": "images/products/product-035.jpg", "q": "borrowed"}, {"id": "P0028", "name": "羊毛外套 28款", "cat": "外套", "brand": "Mode Studio", "country": "韓國", "color": "灰色", "size": "S", "price": 2370, "stock": 6, "date": "2026-01-01", "img": "images/products/product-049.jpg", "q": "ok"}, {"id": "P0029", "name": "針織洋裝 29款", "cat": "洋裝", "brand": "Daily Wear", "country": "台灣", "color": "綠色", "size": "M", "price": 500, "stock": 13, "date": "2026-01-01", "img": "images/products/product-009.jpg", "q": "approx"}, {"id": "P0030", "name": "慢跑長褲 30款", "cat": "運動服", "brand": "Peak Active", "country": "美國", "color": "黑色", "size": "L", "price": 720, "stock": 20, "date": "2025-06-15", "img": "images/products/product-046.jpg", "q": "borrowed"}, {"id": "P0031", "name": "純棉T恤 31款", "cat": "上衣", "brand": "Urban Leaf", "country": "台灣", "color": "白色", "size": "XL", "price": 940, "stock": 27, "date": "2026-01-01", "img": "images/products/product-014.jpg", "q": "approx"}, {"id": "P0032", "name": "直筒牛仔褲 32款", "cat": "褲子", "brand": "North Thread", "country": "日本", "color": "米色", "size": "S", "price": 1160, "stock": 34, "date": "2026-01-01", "img": "images/products/product-047.jpg", "q": "approx"}, {"id": "P0033", "name": "百褶裙 33款", "cat": "裙子", "brand": "Mode Studio", "country": "韓國", "color": "藍色", "size": "M", "price": 1380, "stock": 3, "date": "2025-06-15", "img": "images/products/product-036.jpg", "q": "ok"}, {"id": "P0034", "name": "防風外套 34款", "cat": "外套", "brand": "Daily Wear", "country": "台灣", "color": "灰色", "size": "L", "price": 1600, "stock": 10, "date": "2026-01-01", "img": "images/products/product-056.jpg", "q": "approx"}, {"id": "P0035", "name": "碎花洋裝 35款", "cat": "洋裝", "brand": "Peak Active", "country": "美國", "color": "綠色", "size": "XL", "price": 1820, "stock": 17, "date": "2026-01-01", "img": "images/products/product-002.jpg", "q": "ok"}, {"id": "P0036", "name": "運動上衣 36款", "cat": "運動服", "brand": "Urban Leaf", "country": "台灣", "color": "黑色", "size": "S", "price": 2040, "stock": 24, "date": "2025-06-15", "img": "images/products/product-025.jpg", "q": "borrowed"}, {"id": "P0037", "name": "襯衫 37款", "cat": "上衣", "brand": "North Thread", "country": "日本", "color": "白色", "size": "M", "price": 2260, "stock": 31, "date": "2026-01-01", "img": "images/products/product-017.jpg", "q": "ok"}, {"id": "P0038", "name": "休閒長褲 38款", "cat": "褲子", "brand": "Mode Studio", "country": "韓國", "color": "米色", "size": "L", "price": 390, "stock": 0, "date": "2026-01-01", "img": "images/products/product-044.jpg", "q": "approx"}, {"id": "P0039", "name": "牛仔短裙 39款", "cat": "裙子", "brand": "Daily Wear", "country": "台灣", "color": "藍色", "size": "XL", "price": 610, "stock": 7, "date": "2025-06-15", "img": "images/products/product-038.jpg", "q": "approx"}, {"id": "P0040", "name": "丹寧外套 40款", "cat": "外套", "brand": "Peak Active", "country": "美國", "color": "灰色", "size": "S", "price": 830, "stock": 14, "date": "2026-01-01", "img": "images/products/product-053.jpg", "q": "approx"}, {"id": "P0041", "name": "無袖洋裝 41款", "cat": "洋裝", "brand": "Urban Leaf", "country": "台灣", "color": "綠色", "size": "M", "price": 1050, "stock": 21, "date": "2026-01-01", "img": "images/products/product-008.jpg", "q": "ok"}, {"id": "P0042", "name": "瑜伽褲 42款", "cat": "運動服", "brand": "North Thread", "country": "日本", "color": "黑色", "size": "L", "price": 1270, "stock": 28, "date": "2025-06-15", "img": "images/products/product-044.jpg", "q": "borrowed"}, {"id": "P0043", "name": "針織上衣 43款", "cat": "上衣", "brand": "Mode Studio", "country": "韓國", "color": "白色", "size": "XL", "price": 1490, "stock": 35, "date": "2026-01-01", "img": "images/products/product-028.jpg", "q": "ok"}, {"id": "P0044", "name": "西裝褲 44款", "cat": "褲子", "brand": "Daily Wear", "country": "台灣", "color": "米色", "size": "S", "price": 1710, "stock": 4, "date": "2026-01-01", "img": "images/products/product-048.jpg", "q": "approx"}, {"id": "P0045", "name": "長裙 45款", "cat": "裙子", "brand": "Peak Active", "country": "美國", "color": "藍色", "size": "M", "price": 1930, "stock": 11, "date": "2025-06-15", "img": "images/products/product-040.jpg", "q": "ok"}, {"id": "P0046", "name": "連帽外套 46款", "cat": "外套", "brand": "Urban Leaf", "country": "台灣", "color": "灰色", "size": "L", "price": 2150, "stock": 18, "date": "2026-01-01", "img": "images/products/product-055.jpg", "q": "ok"}, {"id": "P0047", "name": "長袖洋裝 47款", "cat": "洋裝", "brand": "North Thread", "country": "日本", "color": "綠色", "size": "XL", "price": 2370, "stock": 25, "date": "2026-01-01", "img": "images/products/product-004.jpg", "q": "approx"}, {"id": "P0048", "name": "訓練短褲 48款", "cat": "運動服", "brand": "Mode Studio", "country": "韓國", "color": "黑色", "size": "S", "price": 500, "stock": 32, "date": "2025-06-15", "img": "images/products/product-032.jpg", "q": "borrowed"}, {"id": "P0049", "name": "短袖上衣 49款", "cat": "上衣", "brand": "Daily Wear", "country": "台灣", "color": "白色", "size": "M", "price": 720, "stock": 1, "date": "2026-01-01", "img": "images/products/product-015.jpg", "q": "ok"}, {"id": "P0050", "name": "寬褲 50款", "cat": "褲子", "brand": "Peak Active", "country": "美國", "color": "米色", "size": "L", "price": 940, "stock": 8, "date": "2026-01-01", "img": "images/products/product-043.jpg", "q": "ok"}, {"id": "P0051", "name": "A字裙 51款", "cat": "裙子", "brand": "Urban Leaf", "country": "台灣", "color": "藍色", "size": "XL", "price": 1160, "stock": 15, "date": "2025-06-15", "img": "images/products/product-037.jpg", "q": "borrowed"}, {"id": "P0052", "name": "西裝外套 52款", "cat": "外套", "brand": "North Thread", "country": "日本", "color": "灰色", "size": "S", "price": 1380, "stock": 22, "date": "2026-01-01", "img": "images/products/product-058.jpg", "q": "ok"}, {"id": "P0053", "name": "襯衫洋裝 53款", "cat": "洋裝", "brand": "Mode Studio", "country": "韓國", "color": "綠色", "size": "M", "price": 1600, "stock": 29, "date": "2026-01-01", "img": "images/products/product-006.jpg", "q": "approx"}, {"id": "P0054", "name": "運動外套 54款", "cat": "運動服", "brand": "Daily Wear", "country": "台灣", "color": "黑色", "size": "L", "price": 1820, "stock": 36, "date": "2025-06-15", "img": "images/products/product-055.jpg", "q": "borrowed"}, {"id": "P0055", "name": "條紋上衣 55款", "cat": "上衣", "brand": "Peak Active", "country": "美國", "color": "白色", "size": "XL", "price": 2040, "stock": 5, "date": "2026-01-01", "img": "images/products/product-026.jpg", "q": "ok"}, {"id": "P0056", "name": "棉質短褲 56款", "cat": "褲子", "brand": "Urban Leaf", "country": "台灣", "color": "米色", "size": "S", "price": 2260, "stock": 12, "date": "2026-01-01", "img": "images/products/product-033.jpg", "q": "ok"}, {"id": "P0057", "name": "針織裙 57款", "cat": "裙子", "brand": "North Thread", "country": "日本", "color": "藍色", "size": "M", "price": 390, "stock": 19, "date": "2025-06-15", "img": "images/products/product-036.jpg", "q": "borrowed"}, {"id": "P0058", "name": "羊毛外套 58款", "cat": "外套", "brand": "Mode Studio", "country": "韓國", "color": "灰色", "size": "L", "price": 610, "stock": 26, "date": "2026-01-01", "img": "images/products/product-050.jpg", "q": "ok"}, {"id": "P0059", "name": "針織洋裝 59款", "cat": "洋裝", "brand": "Daily Wear", "country": "台灣", "color": "綠色", "size": "XL", "price": 830, "stock": 33, "date": "2026-01-01", "img": "images/products/product-010.jpg", "q": "approx"}, {"id": "P0060", "name": "慢跑長褲 60款", "cat": "運動服", "brand": "Peak Active", "country": "美國", "color": "黑色", "size": "S", "price": 1050, "stock": 2, "date": "2025-06-15", "img": "images/products/product-045.jpg", "q": "borrowed"}];
+
+const $ = id => document.getElementById(id);
+const state = {q:"", cat:"全部", brand:"全部", color:"全部", size:"全部", instock:false, sort:"id"};
+const uniq = key => [...new Set(PRODUCTS.map(p => p[key]))];
+const CATS = ["全部", ...uniq("cat")];
+const SIZE_ORDER = ["S","M","L","XL"];
+
+function fillSelect(el, values){
+  el.innerHTML = "";
+  ["全部", ...values].forEach(v => { const o = document.createElement("option"); o.value = v; o.textContent = v; el.appendChild(o); });
+}
+function buildControls(){
+  CATS.forEach(c => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.textContent = c; b.dataset.cat = c;
+    b.addEventListener("click", () => { state.cat = c; render(); });
+    $("cats").appendChild(b);
+  });
+  fillSelect($("brand"), uniq("brand").sort());
+  fillSelect($("color"), uniq("color"));
+  fillSelect($("size"), uniq("size").sort((a,b) => SIZE_ORDER.indexOf(a) - SIZE_ORDER.indexOf(b)));
+  $("q").addEventListener("input", e => { state.q = e.target.value.trim().toLowerCase(); render(); });
+  ["brand","color","size","sort"].forEach(k => $(k).addEventListener("change", e => { state[k] = e.target.value; render(); }));
+  $("instock").addEventListener("change", e => { state.instock = e.target.checked; render(); });
+  $("reset").addEventListener("click", resetAll);
+}
+function resetAll(){
+  Object.assign(state, {q:"", cat:"全部", brand:"全部", color:"全部", size:"全部", instock:false});
+  $("q").value = ""; $("brand").value = "全部"; $("color").value = "全部"; $("size").value = "全部"; $("instock").checked = false;
+  render();
+}
+function matches(p){
+  if (state.cat !== "全部" && p.cat !== state.cat) return false;
+  if (state.brand !== "全部" && p.brand !== state.brand) return false;
+  if (state.color !== "全部" && p.color !== state.color) return false;
+  if (state.size !== "全部" && p.size !== state.size) return false;
+  if (state.instock && p.stock <= 0) return false;
+  if (state.q && !(p.name + p.cat + p.brand + p.color + p.id).toLowerCase().includes(state.q)) return false;
+  return true;
+}
+function sorted(list){
+  const s = [...list];
+  if (state.sort === "asc") s.sort((a,b) => a.price - b.price || a.id.localeCompare(b.id));
+  else if (state.sort === "desc") s.sort((a,b) => b.price - a.price || a.id.localeCompare(b.id));
+  else if (state.sort === "new") s.sort((a,b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id));
+  else s.sort((a,b) => a.id.localeCompare(b.id));
+  return s;
+}
+function el(tag, cls, text){ const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+function cardFor(p){
+  const li = el("li", "card" + (p.stock <= 0 ? " sold" : ""));
+  const ph = el("div", "photo");
+  const img = document.createElement("img");
+  img.src = p.img; img.alt = p.name + "," + p.color; img.loading = "lazy";
+  img.addEventListener("error", () => { img.remove(); ph.classList.add("empty"); });
+  ph.appendChild(img);
+  if (p.stock <= 0) ph.appendChild(el("span", "badge", "缺貨"));
+  else if (p.stock <= 5) ph.appendChild(el("span", "badge low", "僅剩 " + p.stock + " 件"));
+  const info = el("div", "info");
+  info.appendChild(el("div", "meta", p.cat + "|" + p.brand));
+  info.appendChild(el("h3", "name", p.name));
+  info.appendChild(el("div", "spec", p.color + " / " + p.size + " / 庫存 " + p.stock));
+  info.appendChild(el("div", "price", "NT$ " + p.price.toLocaleString("zh-TW")));
+  li.append(ph, info);
+  return li;
+}
+function render(){
+  document.querySelectorAll(".chip").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.cat === state.cat)));
+  const list = sorted(PRODUCTS.filter(matches));
+  const grid = $("grid"); grid.innerHTML = "";
+  list.forEach(p => grid.appendChild(cardFor(p)));
+  $("count").innerHTML = "共 <b>" + list.length + "</b> 件商品(全部 " + PRODUCTS.length + " 件)";
+  if (!list.length){
+    const li = el("li", "empty-state");
+    li.style.gridColumn = "1 / -1";
+    li.appendChild(el("p", "", "沒有符合條件的商品,請放寬篩選條件。"));
+    const b = el("button", "", "清除全部篩選"); b.type = "button"; b.addEventListener("click", resetAll);
+    li.appendChild(b); grid.appendChild(li);
+  }
+}
+buildControls(); render();
+</script>
+</body>
+</html>
